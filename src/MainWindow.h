@@ -15,7 +15,10 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QTimer>
+#include <QSpinBox>
 #include "PdfEngine.h"
+#include "ImageEngine.h"
+#include "SettingsPage.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -28,15 +31,27 @@ private slots:
     void browsePDF();
     void startPDFCompression();
     void checkFileSizeWarning();
-    void updateSpinnerAnimation(); // Slot animasi berputar
+    void updateSpinnerAnimation();
+    void browseImage();
+    void startImageProcess();
+    
+    // Handlers Tema & Wallpaper
+    void changeTheme(const QString &themeKey);
+    void setCustomWallpaper(const QString &imagePath);
 
 private:
     void setupUI();
     QWidget* createPDFPage();
+    QWidget* createImagePage();
+    QWidget* createAiBgPage();
+    
     QString formatFileSize(qint64 bytes);
-    void addHistoryRow(const QString &fileName, const QString &origSize, const QString &newSize, const QString &outputPath);
+    void addHistoryRow(QTableWidget *table, const QString &fileName, const QString &origSize, const QString &newSize, const QString &outputPath);
 
     QStackedWidget *stackedWidget;
+    SettingsPage *settingsPage;
+    
+    // PDF Controls
     QLabel *pdfFileLabel;
     QPushButton *btnBrowsePDF;
     QComboBox *comboTargetSizePDF;
@@ -44,13 +59,25 @@ private:
     QPushButton *btnStartPDF;
     QProgressBar *progressBarPDF;
     QLabel *statusLabelPDF;
-    QTableWidget *historyTable;
+    QTableWidget *historyTablePDF;
+
+    // Image Controls
+    QLabel *imgFileLabel;
+    QPushButton *btnBrowseImg;
+    QSpinBox *spinWidth;
+    QSpinBox *spinHeight;
+    QSpinBox *spinQuality;
+    QPushButton *btnStartImg;
+    QLabel *statusLabelImg;
+    QTableWidget *historyTableImg;
 
     PdfEngine *pdfEngine;
+    ImageEngine *imageEngine;
+    
     QString selectedPDFPath;
     qint64 selectedFileSize;
+    QString selectedImagePath;
 
-    // Timer & Variabel Animasi Spinner
     QTimer *spinnerTimer;
     int spinnerFrame;
 };

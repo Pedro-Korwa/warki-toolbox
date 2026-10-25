@@ -14,8 +14,14 @@ add_executable(WarkiToolbox
     src/main.cpp
     src/MainWindow.cpp
     src/MainWindow.h
-    src/PdfEngine.h
     src/PdfEngine.cpp
+    src/PdfEngine.h
+    src/ImageEngine.cpp
+    src/ImageEngine.h
+    src/SplashScreen.cpp
+    src/SplashScreen.h
+    src/SettingsPage.cpp
+    src/SettingsPage.h
 )
 
 target_link_libraries(WarkiToolbox PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)

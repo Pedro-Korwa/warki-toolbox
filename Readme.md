@@ -1,4 +1,4 @@
-# ⚡ Warki Toolbox
+# ⚡ warki toolbox
 
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++ Standard">

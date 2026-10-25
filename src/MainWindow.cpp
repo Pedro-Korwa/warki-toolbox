@@ -1,11 +1,13 @@
 #include "MainWindow.h"
+#include <QApplication>
 #include <QHeaderView>
+#include <QListView>
 #include <QThread>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), selectedFileSize(0), spinnerFrame(0) {
     pdfEngine = new PdfEngine(this);
+    imageEngine = new ImageEngine(this);
     
-    // Inisialisasi Timer Animasi Status
     spinnerTimer = new QTimer(this);
     connect(spinnerTimer, &QTimer::timeout, this, &MainWindow::updateSpinnerAnimation);
 
@@ -22,53 +24,157 @@ QString MainWindow::formatFileSize(qint64 bytes) {
 
 void MainWindow::setupUI() {
     setWindowTitle("Warki Toolbox - Professional Desktop Utility");
-    resize(980, 680);
-    setStyleSheet("background-color: #1e1e2e; color: #cdd6f4; font-family: 'Segoe UI', sans-serif;");
+    resize(1020, 700);
 
     QWidget *centralWidget = new QWidget(this);
+    centralWidget->setObjectName("centralWidget");
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // Sidebar Navigasi
+    // Sidebar
     QWidget *sidebar = new QWidget(this);
+    sidebar->setObjectName("sidebarWidget");
     sidebar->setFixedWidth(220);
-    sidebar->setStyleSheet("background-color: #181825; border-right: 1px solid #313244;");
 
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
     sidebarLayout->setContentsMargins(15, 25, 15, 25);
-    sidebarLayout->setSpacing(10);
+    sidebarLayout->setSpacing(5);
 
     QLabel *appTitle = new QLabel("⚡ WARKI", sidebar);
-    appTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: #89b4fa; padding-bottom: 15px;");
+    appTitle->setObjectName("appTitleLabel");
+    
+    QLabel *devLabel = new QLabel("BY BIAK DEVELOPER", sidebar);
+    devLabel->setObjectName("devTagLabel");
+
     sidebarLayout->addWidget(appTitle);
+    sidebarLayout->addWidget(devLabel);
 
-    QPushButton *btnNavPDF = new QPushButton("📄  Kompres PDF", sidebar);
-    QPushButton *btnNavImg = new QPushButton("🖼️  Resize Gambar", sidebar);
-    QPushButton *btnNavAI  = new QPushButton("✨  Hapus BG (AI)", sidebar);
+    QPushButton *btnNavPDF      = new QPushButton("📄  Kompres PDF", sidebar);
+    QPushButton *btnNavImg      = new QPushButton("🖼️  Resize Gambar", sidebar);
+    QPushButton *btnNavAI       = new QPushButton("✨  Hapus BG (AI)", sidebar);
+    QPushButton *btnNavSettings = new QPushButton("⚙️  Pengaturan", sidebar);
 
-    QString sideBtnStyle = "QPushButton { text-align: left; padding: 12px; border-radius: 8px; font-weight: bold; background: transparent; color: #a6adc8; }"
-                           "QPushButton:hover { background-color: #313244; color: #cdd6f4; }"
-                           "QPushButton:checked { background-color: #45475a; color: #89b4fa; }";
+    btnNavPDF->setObjectName("navButton");
+    btnNavImg->setObjectName("navButton");
+    btnNavAI->setObjectName("navButton");
+    btnNavSettings->setObjectName("navButton");
 
-    btnNavPDF->setStyleSheet(sideBtnStyle);
-    btnNavImg->setStyleSheet(sideBtnStyle);
-    btnNavAI->setStyleSheet(sideBtnStyle);
     btnNavPDF->setCheckable(true);
+    btnNavImg->setCheckable(true);
+    btnNavAI->setCheckable(true);
+    btnNavSettings->setCheckable(true);
     btnNavPDF->setChecked(true);
 
     sidebarLayout->addWidget(btnNavPDF);
     sidebarLayout->addWidget(btnNavImg);
     sidebarLayout->addWidget(btnNavAI);
     sidebarLayout->addStretch();
+    sidebarLayout->addWidget(btnNavSettings);
+
+    settingsPage = new SettingsPage(this);
 
     stackedWidget = new QStackedWidget(this);
-    stackedWidget->addWidget(createPDFPage());
+    stackedWidget->addWidget(createPDFPage());      // Index 0
+    stackedWidget->addWidget(createImagePage());    // Index 1
+    stackedWidget->addWidget(createAiBgPage());     // Index 2
+    stackedWidget->addWidget(settingsPage);        // Index 3
+
+    connect(settingsPage, &SettingsPage::themeChanged, this, &MainWindow::changeTheme);
+    connect(settingsPage, &SettingsPage::wallpaperChanged, this, &MainWindow::setCustomWallpaper);
+
+    auto clearChecks = [=]() {
+        btnNavPDF->setChecked(false);
+        btnNavImg->setChecked(false);
+        btnNavAI->setChecked(false);
+        btnNavSettings->setChecked(false);
+    };
+
+    connect(btnNavPDF, &QPushButton::clicked, [=]() { clearChecks(); btnNavPDF->setChecked(true); stackedWidget->setCurrentIndex(0); });
+    connect(btnNavImg, &QPushButton::clicked, [=]() { clearChecks(); btnNavImg->setChecked(true); stackedWidget->setCurrentIndex(1); });
+    connect(btnNavAI, &QPushButton::clicked, [=]() { clearChecks(); btnNavAI->setChecked(true); stackedWidget->setCurrentIndex(2); });
+    connect(btnNavSettings, &QPushButton::clicked, [=]() { clearChecks(); btnNavSettings->setChecked(true); stackedWidget->setCurrentIndex(3); });
 
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(stackedWidget, 1);
 
     setCentralWidget(centralWidget);
+    changeTheme("dark");
+}
+
+void MainWindow::changeTheme(const QString &themeKey) {
+    if (themeKey == "light") {
+        qApp->setStyleSheet(
+            "QMainWindow, QWidget#centralWidget { background-color: #eff1f5; color: #4c4f69; font-family: 'Segoe UI', sans-serif; }"
+            "QWidget#sidebarWidget { background-color: #e6e9ef; border-right: 1px solid #ccd0da; }"
+            "QLabel#appTitleLabel { font-size: 20px; font-weight: bold; color: #1e66f5; }"
+            "QLabel#devTagLabel { font-size: 9px; font-weight: bold; color: #fe640b; letter-spacing: 2px; padding-bottom: 15px; }"
+            "QPushButton#navButton { text-align: left; padding: 12px; border-radius: 8px; font-weight: bold; background: transparent; color: #5c5f77; border: none; }"
+            "QPushButton#navButton:hover { background-color: #dce0e8; color: #4c4f69; }"
+            "QPushButton#navButton:checked { background-color: #ccd0da; color: #1e66f5; }"
+            "QLabel#headerLabel { font-size: 22px; font-weight: bold; color: #1e66f5; }"
+            "QLabel#subHeaderLabel { font-size: 15px; font-weight: bold; color: #5c5f77; margin-top: 10px; }"
+            "QFrame#cardFrame { background-color: #e6e9ef; border-radius: 10px; border: 1px solid #ccd0da; }"
+            "QLabel#filePathLabel { background-color: #dce0e8; color: #4c4f69; padding: 10px; border-radius: 6px; border: none; }"
+            "QLabel { color: #4c4f69; border: none; background: transparent; }"
+            "QComboBox { background-color: #dce0e8; color: #4c4f69; padding: 8px; border-radius: 6px; border: 1px solid #ccd0da; }"
+            "QComboBox QAbstractItemView { background-color: #eff1f5; color: #4c4f69; selection-background-color: #bcc0cc; selection-color: #4c4f69; border: 1px solid #ccd0da; outline: 0; }"
+            "QTableWidget { background-color: #e6e9ef; color: #4c4f69; border-radius: 8px; border: 1px solid #ccd0da; gridline-color: #ccd0da; }"
+            "QTableCornerButton::section { background-color: #dce0e8; border: none; }"
+            "QHeaderView::section { background-color: #dce0e8; color: #4c4f69; padding: 8px; font-weight: bold; border: none; }"
+            "QSpinBox { background-color: #dce0e8; color: #4c4f69; padding: 8px; border-radius: 6px; border: none; }"
+        );
+    } else if (themeKey == "cyber") {
+        qApp->setStyleSheet(
+            "QMainWindow, QWidget#centralWidget { background-color: #030a16; color: #00f0ff; font-family: 'Segoe UI', sans-serif; }"
+            "QWidget#sidebarWidget { background-color: #051124; border-right: 1px solid #00f0ff; }"
+            "QLabel#appTitleLabel { font-size: 20px; font-weight: bold; color: #00f0ff; }"
+            "QLabel#devTagLabel { font-size: 9px; font-weight: bold; color: #ff007f; letter-spacing: 2px; padding-bottom: 15px; }"
+            "QPushButton#navButton { text-align: left; padding: 12px; border-radius: 8px; font-weight: bold; background: transparent; color: #70aeff; border: none; }"
+            "QPushButton#navButton:hover { background-color: #0c213e; color: #00f0ff; }"
+            "QPushButton#navButton:checked { background-color: #0c213e; color: #00f0ff; border: 1px solid #00f0ff; }"
+            "QLabel#headerLabel { font-size: 22px; font-weight: bold; color: #00f0ff; }"
+            "QLabel#subHeaderLabel { font-size: 15px; font-weight: bold; color: #70aeff; margin-top: 10px; }"
+            "QFrame#cardFrame { background-color: #08162b; border-radius: 10px; border: 1px solid #00f0ff; }"
+            "QLabel#filePathLabel { background-color: #0c213e; color: #00f0ff; padding: 10px; border-radius: 6px; border: none; }"
+            "QLabel { color: #00f0ff; border: none; background: transparent; }"
+            "QComboBox { background-color: #0c213e; color: #00f0ff; padding: 8px; border-radius: 6px; border: 1px solid #00f0ff; }"
+            "QComboBox QAbstractItemView { background-color: #08162b; color: #00f0ff; selection-background-color: #0c213e; selection-color: #ffffff; border: 1px solid #00f0ff; outline: 0; }"
+            "QTableWidget { background-color: #08162b; color: #00f0ff; border-radius: 8px; border: 1px solid #00f0ff; gridline-color: #0c213e; }"
+            "QTableCornerButton::section { background-color: #0c213e; border: none; }"
+            "QHeaderView::section { background-color: #0c213e; color: #00f0ff; padding: 8px; font-weight: bold; border: none; }"
+            "QSpinBox { background-color: #0c213e; color: #00f0ff; padding: 8px; border-radius: 6px; border: none; }"
+        );
+    } else { // Dark Catppuccin (Default)
+        qApp->setStyleSheet(
+            "QMainWindow, QWidget#centralWidget { background-color: #1e1e2e; color: #cdd6f4; font-family: 'Segoe UI', sans-serif; }"
+            "QWidget#sidebarWidget { background-color: #181825; border-right: 1px solid #313244; }"
+            "QLabel#appTitleLabel { font-size: 20px; font-weight: bold; color: #89b4fa; }"
+            "QLabel#devTagLabel { font-size: 9px; font-weight: bold; color: #fab387; letter-spacing: 2px; padding-bottom: 15px; }"
+            "QPushButton#navButton { text-align: left; padding: 12px; border-radius: 8px; font-weight: bold; background: transparent; color: #a6adc8; border: none; }"
+            "QPushButton#navButton:hover { background-color: #313244; color: #cdd6f4; }"
+            "QPushButton#navButton:checked { background-color: #45475a; color: #89b4fa; }"
+            "QLabel#headerLabel { font-size: 22px; font-weight: bold; color: #89b4fa; }"
+            "QLabel#subHeaderLabel { font-size: 15px; font-weight: bold; color: #bac2de; margin-top: 10px; }"
+            "QFrame#cardFrame { background-color: #181825; border-radius: 10px; border: 1px solid #313244; }"
+            "QLabel#filePathLabel { background-color: #313244; color: #cdd6f4; padding: 10px; border-radius: 6px; border: none; }"
+            "QLabel { color: #cdd6f4; border: none; background: transparent; }"
+            "QComboBox { background-color: #313244; color: #cdd6f4; padding: 8px; border-radius: 6px; border: none; }"
+            "QComboBox QAbstractItemView { background-color: #181825; color: #cdd6f4; selection-background-color: #45475a; selection-color: #ffffff; border: 1px solid #313244; outline: 0; }"
+            "QTableWidget { background-color: #181825; color: #cdd6f4; border-radius: 8px; border: 1px solid #313244; gridline-color: #313244; }"
+            "QTableCornerButton::section { background-color: #313244; border: none; }"
+            "QHeaderView::section { background-color: #313244; color: #cdd6f4; padding: 8px; font-weight: bold; border: none; }"
+            "QSpinBox { background-color: #313244; color: #cdd6f4; padding: 8px; border-radius: 6px; border: none; }"
+        );
+    }
+}
+
+void MainWindow::setCustomWallpaper(const QString &imagePath) {
+    if (imagePath.isEmpty()) {
+        changeTheme("dark");
+    } else {
+        qApp->setStyleSheet(QString("QMainWindow { border-image: url(%1) 0 0 0 0 stretch stretch; } color: #ffffff; font-family: 'Segoe UI', sans-serif;").arg(imagePath));
+    }
 }
 
 QWidget* MainWindow::createPDFPage() {
@@ -78,16 +184,16 @@ QWidget* MainWindow::createPDFPage() {
     layout->setSpacing(15);
 
     QLabel *header = new QLabel("📄 PDF Optimization & Task Manager", page);
-    header->setStyleSheet("font-size: 22px; font-weight: bold; color: #89b4fa;");
+    header->setObjectName("headerLabel");
     layout->addWidget(header);
 
     QFrame *controlFrame = new QFrame(page);
-    controlFrame->setStyleSheet("QFrame { background-color: #181825; border-radius: 10px; padding: 15px; border: 1px solid #313244; }");
+    controlFrame->setObjectName("cardFrame");
     QVBoxLayout *controlLayout = new QVBoxLayout(controlFrame);
 
     QHBoxLayout *fileRow = new QHBoxLayout();
     pdfFileLabel = new QLabel("Pilih file PDF untuk dikompres...", controlFrame);
-    pdfFileLabel->setStyleSheet("background-color: #313244; padding: 10px; border-radius: 6px; border: none;");
+    pdfFileLabel->setObjectName("filePathLabel");
     
     btnBrowsePDF = new QPushButton("Pilih PDF", controlFrame);
     btnBrowsePDF->setStyleSheet("QPushButton { background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 10px 18px; border-radius: 6px; }"
@@ -99,13 +205,11 @@ QWidget* MainWindow::createPDFPage() {
 
     QHBoxLayout *optRow = new QHBoxLayout();
     comboTargetSizePDF = new QComboBox(controlFrame);
-    
+    comboTargetSizePDF->setView(new QListView(comboTargetSizePDF)); // Fix warna dropdown
     comboTargetSizePDF->addItem("🚀 Ultra Kompresi (Target 100 KB - 300 KB / 72 DPI)", static_cast<int>(TargetPreset::Target100_300KB));
     comboTargetSizePDF->addItem("⚡ Ekstrem (Target 300 KB - 500 KB / 96 DPI)", static_cast<int>(TargetPreset::Target300_500KB));
     comboTargetSizePDF->addItem("⚖️ Sedang / Standar Web (Target 1 MB - 2 MB / 150 DPI)", static_cast<int>(TargetPreset::Target1MB_2MB));
     comboTargetSizePDF->addItem("✨ Naikkan Kualitas / Upscale Cetak (300 DPI)", static_cast<int>(TargetPreset::UpscaleHQ));
-    
-    comboTargetSizePDF->setStyleSheet("QComboBox { background-color: #313244; color: #cdd6f4; padding: 8px; border-radius: 6px; border: none; }");
 
     btnStartPDF = new QPushButton("🚀 Mulai Kompresi", controlFrame);
     btnStartPDF->setStyleSheet("QPushButton { background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 10px 20px; border-radius: 6px; }"
@@ -131,48 +235,40 @@ QWidget* MainWindow::createPDFPage() {
     controlLayout->addWidget(progressBarPDF);
 
     statusLabelPDF = new QLabel("Status: Siap", controlFrame);
-    statusLabelPDF->setStyleSheet("color: #a6adc8; font-size: 11px; border: none;");
+    statusLabelPDF->setStyleSheet("font-size: 11px; border: none;");
     controlLayout->addWidget(statusLabelPDF);
 
     layout->addWidget(controlFrame);
 
     QLabel *historyHeader = new QLabel("📋 Task History / Hasil Kompresi", page);
-    historyHeader->setStyleSheet("font-size: 15px; font-weight: bold; color: #bac2de; margin-top: 10px;");
+    historyHeader->setObjectName("subHeaderLabel");
     layout->addWidget(historyHeader);
 
-    historyTable = new QTableWidget(0, 4, page);
-    historyTable->setHorizontalHeaderLabels({"Nama File", "Ukuran Awal", "Ukuran Baru", "Aksi"});
-    historyTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-    historyTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    historyTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    historyTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    historyTable->setStyleSheet("QTableWidget { background-color: #181825; border-radius: 8px; border: 1px solid #313244; gridline-color: #313244; }"
-                                "QHeaderView::section { background-color: #313244; color: #cdd6f4; padding: 8px; font-weight: bold; border: none; }");
+    historyTablePDF = new QTableWidget(0, 4, page);
+    historyTablePDF->verticalHeader()->setVisible(false); // Sembunyikan indeks 1, 2 di kiri
+    historyTablePDF->setHorizontalHeaderLabels({"Nama File", "Ukuran Awal", "Ukuran Baru", "Aksi"});
+    historyTablePDF->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    historyTablePDF->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    historyTablePDF->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    historyTablePDF->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     
-    layout->addWidget(historyTable, 1);
+    layout->addWidget(historyTablePDF, 1);
 
     connect(btnBrowsePDF, &QPushButton::clicked, this, &MainWindow::browsePDF);
     connect(btnStartPDF, &QPushButton::clicked, this, &MainWindow::startPDFCompression);
     connect(comboTargetSizePDF, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::checkFileSizeWarning);
 
-    // Handler Selesai Kompresi
     connect(pdfEngine, &PdfEngine::compressionFinished, [this](bool success, QString inPath, QString outPath) {
-        spinnerTimer->stop(); // Hentikan Animasi
+        spinnerTimer->stop();
         progressBarPDF->hide();
         btnStartPDF->setEnabled(true);
         btnBrowsePDF->setEnabled(true);
 
         if (success) {
             QThread::msleep(100);
-            QFileInfo inInfo(inPath);
-            QFileInfo outInfo(outPath);
-            outInfo.refresh();
-
-            QString sizeIn = formatFileSize(inInfo.size());
-            QString sizeOut = formatFileSize(outInfo.size());
-
+            QFileInfo inInfo(inPath); QFileInfo outInfo(outPath); outInfo.refresh();
             statusLabelPDF->setText("Status: ✅ Kompresi Selesai!");
-            addHistoryRow(outInfo.fileName(), sizeIn, sizeOut, outPath);
+            addHistoryRow(historyTablePDF, outInfo.fileName(), formatFileSize(inInfo.size()), formatFileSize(outInfo.size()), outPath);
         } else {
             statusLabelPDF->setText("Status: ❌ Gagal mengompres PDF!");
         }
@@ -181,7 +277,99 @@ QWidget* MainWindow::createPDFPage() {
     return page;
 }
 
-// Slot Animasi Berputar
+QWidget* MainWindow::createImagePage() {
+    QWidget *page = new QWidget();
+    QVBoxLayout *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(30, 30, 30, 30);
+    layout->setSpacing(15);
+
+    QLabel *header = new QLabel("🖼️ Image Resizer & Quality Compressor", page);
+    header->setObjectName("headerLabel");
+    layout->addWidget(header);
+
+    QFrame *controlFrame = new QFrame(page);
+    controlFrame->setObjectName("cardFrame");
+    QVBoxLayout *controlLayout = new QVBoxLayout(controlFrame);
+
+    QHBoxLayout *fileRow = new QHBoxLayout();
+    imgFileLabel = new QLabel("Pilih gambar (JPG, PNG, WebP)...", controlFrame);
+    imgFileLabel->setObjectName("filePathLabel");
+    
+    btnBrowseImg = new QPushButton("Pilih Gambar", controlFrame);
+    btnBrowseImg->setStyleSheet("QPushButton { background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 10px 18px; border-radius: 6px; }");
+
+    fileRow->addWidget(imgFileLabel, 1);
+    fileRow->addWidget(btnBrowseImg);
+    controlLayout->addLayout(fileRow);
+
+    QHBoxLayout *dimensRow = new QHBoxLayout();
+    
+    spinWidth = new QSpinBox(controlFrame); spinWidth->setRange(0, 8000); spinWidth->setPrefix("Lebar: "); spinWidth->setSuffix(" px");
+    spinHeight = new QSpinBox(controlFrame); spinHeight->setRange(0, 8000); spinHeight->setPrefix("Tinggi: "); spinHeight->setSuffix(" px");
+    spinQuality = new QSpinBox(controlFrame); spinQuality->setRange(10, 100); spinQuality->setValue(80); spinQuality->setPrefix("Kualitas: "); spinQuality->setSuffix(" %");
+
+    btnStartImg = new QPushButton("🚀 Proses Gambar", controlFrame);
+    btnStartImg->setStyleSheet("QPushButton { background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 10px 20px; border-radius: 6px; }"
+                               "QPushButton:disabled { background-color: #45475a; color: #6c7086; }");
+    btnStartImg->setEnabled(false);
+
+    dimensRow->addWidget(spinWidth);
+    dimensRow->addWidget(spinHeight);
+    dimensRow->addWidget(spinQuality);
+    dimensRow->addWidget(btnStartImg);
+    controlLayout->addLayout(dimensRow);
+
+    statusLabelImg = new QLabel("Status: Siap", controlFrame);
+    statusLabelImg->setStyleSheet("font-size: 11px; border: none;");
+    controlLayout->addWidget(statusLabelImg);
+
+    layout->addWidget(controlFrame);
+
+    QLabel *historyHeader = new QLabel("📋 Task History / Hasil Gambar", page);
+    historyHeader->setObjectName("subHeaderLabel");
+    layout->addWidget(historyHeader);
+
+    historyTableImg = new QTableWidget(0, 4, page);
+    historyTableImg->verticalHeader()->setVisible(false); // Sembunyikan indeks 1, 2 di kiri
+    historyTableImg->setHorizontalHeaderLabels({"Nama File", "Ukuran Awal", "Ukuran Baru", "Aksi"});
+    historyTableImg->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    historyTableImg->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    historyTableImg->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    historyTableImg->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    
+    layout->addWidget(historyTableImg, 1);
+
+    connect(btnBrowseImg, &QPushButton::clicked, this, &MainWindow::browseImage);
+    connect(btnStartImg, &QPushButton::clicked, this, &MainWindow::startImageProcess);
+
+    return page;
+}
+
+QWidget* MainWindow::createAiBgPage() {
+    QWidget *page = new QWidget();
+    QVBoxLayout *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(30, 30, 30, 30);
+    layout->setSpacing(15);
+
+    QLabel *header = new QLabel("✨ AI Background Removal (Offline)", page);
+    header->setObjectName("headerLabel");
+    layout->addWidget(header);
+
+    QFrame *frame = new QFrame(page);
+    frame->setObjectName("cardFrame");
+    QVBoxLayout *fLayout = new QVBoxLayout(frame);
+
+    QLabel *info = new QLabel("🤖 Engine AI ONNX Runtime offline sedang disiapkan.\nModul ini akan menghapus latar belakang foto pasfoto/produk secara otomatis tanpa koneksi internet.", frame);
+    info->setAlignment(Qt::AlignCenter);
+    info->setStyleSheet("font-size: 14px; line-height: 1.5;");
+
+    fLayout->addWidget(info);
+    layout->addWidget(frame);
+    layout->addStretch();
+
+    return page;
+}
+
 void MainWindow::updateSpinnerAnimation() {
     const QString frames[] = {"⏳", "⌛"};
     spinnerFrame = (spinnerFrame + 1) % 2;
@@ -197,7 +385,6 @@ void MainWindow::browsePDF() {
         pdfFileLabel->setText(info.fileName() + " (" + formatFileSize(selectedFileSize) + ")");
         btnStartPDF->setEnabled(true);
         statusLabelPDF->setText("Status: File siap dikompres.");
-
         checkFileSizeWarning();
     }
 }
@@ -207,7 +394,7 @@ void MainWindow::checkFileSizeWarning() {
     int currentPresetIndex = comboTargetSizePDF->currentIndex();
 
     if (sizeInMB > 10.0 && currentPresetIndex < 2) { 
-        warningLabelPDF->setText(QString("⚠️ Peringatan: File ini cukup besar (%1 MB). Mengompresi file > 10 MB ke target kecil (100-500 KB) akan menurunkan kualitas gambar secara signifikan agar muat.").arg(sizeInMB, 0, 'f', 2));
+        warningLabelPDF->setText(QString("⚠️ Peringatan: File ini cukup besar (%1 MB). Mengompresi file > 10 MB ke target kecil (100-500 KB) akan menurunkan kualitas gambar secara signifikan.").arg(sizeInMB, 0, 'f', 2));
         warningLabelPDF->show();
     } else {
         warningLabelPDF->hide();
@@ -219,34 +406,63 @@ void MainWindow::startPDFCompression() {
     if (outputFile.isEmpty()) return;
 
     TargetPreset preset = static_cast<TargetPreset>(comboTargetSizePDF->currentData().toInt());
-
     progressBarPDF->show();
     btnStartPDF->setEnabled(false);
     btnBrowsePDF->setEnabled(false);
 
-    // Jalankan Animasi Berputar Setiap 350 milidetik
     spinnerFrame = 0;
     spinnerTimer->start(350);
-
     pdfEngine->compressAsync(selectedPDFPath, outputFile, preset);
 }
 
-void MainWindow::addHistoryRow(const QString &fileName, const QString &origSize, const QString &newSize, const QString &outputPath) {
-    int row = historyTable->rowCount();
-    historyTable->insertRow(row);
+void MainWindow::browseImage() {
+    QString path = QFileDialog::getOpenFileName(this, "Pilih Gambar", "", "Image Files (*.png *.jpg *.jpeg *.webp)");
+    if (!path.isEmpty()) {
+        selectedImagePath = path;
+        QImage img(path);
+        QFileInfo info(path);
+        
+        imgFileLabel->setText(info.fileName() + " (" + formatFileSize(info.size()) + ")");
+        spinWidth->setValue(img.width());
+        spinHeight->setValue(img.height());
+        
+        btnStartImg->setEnabled(true);
+        statusLabelImg->setText("Status: Gambar siap diproses.");
+    }
+}
 
-    historyTable->setItem(row, 0, new QTableWidgetItem(fileName));
-    historyTable->setItem(row, 1, new QTableWidgetItem(origSize));
-    historyTable->setItem(row, 2, new QTableWidgetItem(newSize));
+void MainWindow::startImageProcess() {
+    QString outputFile = QFileDialog::getSaveFileName(this, "Simpan Gambar", selectedImagePath.section('.', 0, -2) + "_resized.png", "Images (*.png *.jpg *.webp)");
+    if (outputFile.isEmpty()) return;
+
+    statusLabelImg->setText("Status: ⏳ Memproses gambar...");
+    bool ok = imageEngine->resizeAndCompress(selectedImagePath, outputFile, spinWidth->value(), spinHeight->value(), spinQuality->value());
+
+    if (ok) {
+        QFileInfo inInfo(selectedImagePath); QFileInfo outInfo(outputFile);
+        statusLabelImg->setText("Status: ✅ Gambar Berhasil Diproses!");
+        addHistoryRow(historyTableImg, outInfo.fileName(), formatFileSize(inInfo.size()), formatFileSize(outInfo.size()), outputFile);
+    } else {
+        statusLabelImg->setText("Status: ❌ Gagal memproses gambar!");
+    }
+}
+
+void MainWindow::addHistoryRow(QTableWidget *table, const QString &fileName, const QString &origSize, const QString &newSize, const QString &outputPath) {
+    int row = table->rowCount();
+    table->insertRow(row);
+
+    table->setItem(row, 0, new QTableWidgetItem(fileName));
+    table->setItem(row, 1, new QTableWidgetItem(origSize));
+    table->setItem(row, 2, new QTableWidgetItem(newSize));
 
     QPushButton *btnOpenFolder = new QPushButton("📂 Buka Folder");
-    btnOpenFolder->setStyleSheet("QPushButton { background-color: #313244; color: #89b4fa; border: 1px solid #45475a; border-radius: 4px; padding: 4px 8px; font-size: 11px; }"
-                                 "QPushButton:hover { background-color: #45475a; color: #ffffff; }");
+    btnOpenFolder->setStyleSheet("QPushButton { background-color: #89b4fa; color: #11111b; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; font-weight: bold; }"
+                                 "QPushButton:hover { background-color: #b4befe; }");
 
     connect(btnOpenFolder, &QPushButton::clicked, [outputPath]() {
         QFileInfo info(outputPath);
         QDesktopServices::openUrl(QUrl::fromLocalFile(info.absolutePath()));
     });
 
-    historyTable->setCellWidget(row, 3, btnOpenFolder);
+    table->setCellWidget(row, 3, btnOpenFolder);
 }
