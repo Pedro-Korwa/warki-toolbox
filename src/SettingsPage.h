@@ -7,7 +7,6 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QFileDialog>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QFrame>
@@ -21,20 +20,17 @@ public:
 
 signals:
     void themeChanged(const QString &themeName);
-    void wallpaperChanged(const QString &imagePath);
+    void patternChanged(const QString &patternKey);
 
 private slots:
     void applyTheme(int index);
-    void selectWallpaper();
-    void resetWallpaper();
+    void applyPattern(int index);
 
 private:
     void setupUI();
 
     QComboBox *comboTheme;
-    QPushButton *btnBrowseWallpaper;
-    QPushButton *btnResetWallpaper;
-    QLabel *wallpaperPathLabel;
+    QComboBox *comboPattern;
 };
 
 #endif // SETTINGSPAGE_H

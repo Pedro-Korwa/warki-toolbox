@@ -3,8 +3,60 @@
 #include <QHeaderView>
 #include <QListView>
 #include <QThread>
+#include <QPainter>
+#include <QPaintEvent>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), selectedFileSize(0), spinnerFrame(0) {
+class PatternStackedWidget : public QStackedWidget {
+public:
+    explicit PatternStackedWidget(QWidget *parent = nullptr) : QStackedWidget(parent), pattern("none"), isDark(true) {}
+
+    void setPattern(const QString &p, bool dark) {
+        pattern = p;
+        isDark = dark;
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *event) override {
+        QStackedWidget::paintEvent(event);
+
+        if (pattern == "none") return;
+
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing, false);
+
+        QColor color = isDark ? QColor(137, 180, 250, 40) : QColor(76, 79, 105, 30);
+        painter.setPen(color);
+
+        if (pattern == "dots") {
+            int step = 20;
+            for (int x = 0; x < width(); x += step) {
+                for (int y = 0; y < height(); y += step) {
+                    painter.drawPoint(x, y);
+                }
+            }
+        } else if (pattern == "grid") {
+            int step = 24;
+            for (int x = 0; x < width(); x += step) {
+                painter.drawLine(x, 0, x, height());
+            }
+            for (int y = 0; y < height(); y += step) {
+                painter.drawLine(0, y, width(), y);
+            }
+        } else if (pattern == "scanlines") {
+            int step = 4;
+            for (int y = 0; y < height(); y += step) {
+                painter.drawLine(0, y, width(), y);
+            }
+        }
+    }
+
+private:
+    QString pattern;
+    bool isDark;
+};
+
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), selectedFileSize(0), spinnerFrame(0), currentTheme("dark") {
     pdfEngine = new PdfEngine(this);
     imageEngine = new ImageEngine(this);
     
@@ -52,7 +104,7 @@ void MainWindow::setupUI() {
 
     QPushButton *btnNavPDF      = new QPushButton("📄  Kompres PDF", sidebar);
     QPushButton *btnNavImg      = new QPushButton("🖼️  Resize Gambar", sidebar);
-    QPushButton *btnNavAI       = new QPushButton("✨  Hapus BG (AI)", sidebar);
+    QPushButton *btnNavAI       = new QPushButton("✨  Hapus BG", sidebar);
     QPushButton *btnNavSettings = new QPushButton("⚙️  Pengaturan", sidebar);
 
     btnNavPDF->setObjectName("navButton");
@@ -73,27 +125,29 @@ void MainWindow::setupUI() {
     sidebarLayout->addWidget(btnNavSettings);
 
     settingsPage = new SettingsPage(this);
+    aiBgPage = new AiBgPage(this); // Inisialisasi Halaman AI BG
 
-    stackedWidget = new QStackedWidget(this);
-    stackedWidget->addWidget(createPDFPage());      // Index 0
-    stackedWidget->addWidget(createImagePage());    // Index 1
-    stackedWidget->addWidget(createAiBgPage());     // Index 2
-    stackedWidget->addWidget(settingsPage);        // Index 3
+    PatternStackedWidget *customStacked = new PatternStackedWidget(this);
+    stackedWidget = customStacked;
+    stackedWidget->addWidget(createPDFPage());   // Index 0
+    stackedWidget->addWidget(createImagePage()); // Index 1
+    stackedWidget->addWidget(aiBgPage);          // Index 2 (Sudah terhubung)
+    stackedWidget->addWidget(settingsPage);     // Index 3
 
     connect(settingsPage, &SettingsPage::themeChanged, this, &MainWindow::changeTheme);
-    connect(settingsPage, &SettingsPage::wallpaperChanged, this, &MainWindow::setCustomWallpaper);
+    connect(settingsPage, &SettingsPage::patternChanged, this, &MainWindow::setCustomPattern);
 
-    auto clearChecks = [=]() {
+    auto clearChecks = [btnNavPDF, btnNavImg, btnNavAI, btnNavSettings]() {
         btnNavPDF->setChecked(false);
         btnNavImg->setChecked(false);
         btnNavAI->setChecked(false);
         btnNavSettings->setChecked(false);
     };
 
-    connect(btnNavPDF, &QPushButton::clicked, [=]() { clearChecks(); btnNavPDF->setChecked(true); stackedWidget->setCurrentIndex(0); });
-    connect(btnNavImg, &QPushButton::clicked, [=]() { clearChecks(); btnNavImg->setChecked(true); stackedWidget->setCurrentIndex(1); });
-    connect(btnNavAI, &QPushButton::clicked, [=]() { clearChecks(); btnNavAI->setChecked(true); stackedWidget->setCurrentIndex(2); });
-    connect(btnNavSettings, &QPushButton::clicked, [=]() { clearChecks(); btnNavSettings->setChecked(true); stackedWidget->setCurrentIndex(3); });
+    connect(btnNavPDF, &QPushButton::clicked, [this, clearChecks, btnNavPDF]() { clearChecks(); btnNavPDF->setChecked(true); stackedWidget->setCurrentIndex(0); });
+    connect(btnNavImg, &QPushButton::clicked, [this, clearChecks, btnNavImg]() { clearChecks(); btnNavImg->setChecked(true); stackedWidget->setCurrentIndex(1); });
+    connect(btnNavAI, &QPushButton::clicked, [this, clearChecks, btnNavAI]() { clearChecks(); btnNavAI->setChecked(true); stackedWidget->setCurrentIndex(2); });
+    connect(btnNavSettings, &QPushButton::clicked, [this, clearChecks, btnNavSettings]() { clearChecks(); btnNavSettings->setChecked(true); stackedWidget->setCurrentIndex(3); });
 
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(stackedWidget, 1);
@@ -103,6 +157,7 @@ void MainWindow::setupUI() {
 }
 
 void MainWindow::changeTheme(const QString &themeKey) {
+    currentTheme = themeKey;
     if (themeKey == "light") {
         qApp->setStyleSheet(
             "QMainWindow, QWidget#centralWidget { background-color: #eff1f5; color: #4c4f69; font-family: 'Segoe UI', sans-serif; }"
@@ -118,7 +173,9 @@ void MainWindow::changeTheme(const QString &themeKey) {
             "QLabel#filePathLabel { background-color: #dce0e8; color: #4c4f69; padding: 10px; border-radius: 6px; border: none; }"
             "QLabel { color: #4c4f69; border: none; background: transparent; }"
             "QComboBox { background-color: #dce0e8; color: #4c4f69; padding: 8px; border-radius: 6px; border: 1px solid #ccd0da; }"
-            "QComboBox QAbstractItemView { background-color: #eff1f5; color: #4c4f69; selection-background-color: #bcc0cc; selection-color: #4c4f69; border: 1px solid #ccd0da; outline: 0; }"
+            "QComboBox QAbstractItemView, QListView { background-color: #eff1f5; color: #4c4f69; border: 1px solid #ccd0da; outline: 0; padding: 4px; }"
+            "QComboBox QAbstractItemView::item { background-color: #eff1f5; color: #4c4f69; padding: 8px; min-height: 25px; }"
+            "QComboBox QAbstractItemView::item:selected { background-color: #bcc0cc; color: #1e66f5; border-radius: 4px; }"
             "QTableWidget { background-color: #e6e9ef; color: #4c4f69; border-radius: 8px; border: 1px solid #ccd0da; gridline-color: #ccd0da; }"
             "QTableCornerButton::section { background-color: #dce0e8; border: none; }"
             "QHeaderView::section { background-color: #dce0e8; color: #4c4f69; padding: 8px; font-weight: bold; border: none; }"
@@ -139,7 +196,9 @@ void MainWindow::changeTheme(const QString &themeKey) {
             "QLabel#filePathLabel { background-color: #0c213e; color: #00f0ff; padding: 10px; border-radius: 6px; border: none; }"
             "QLabel { color: #00f0ff; border: none; background: transparent; }"
             "QComboBox { background-color: #0c213e; color: #00f0ff; padding: 8px; border-radius: 6px; border: 1px solid #00f0ff; }"
-            "QComboBox QAbstractItemView { background-color: #08162b; color: #00f0ff; selection-background-color: #0c213e; selection-color: #ffffff; border: 1px solid #00f0ff; outline: 0; }"
+            "QComboBox QAbstractItemView, QListView { background-color: #08162b; color: #00f0ff; border: 1px solid #00f0ff; outline: 0; padding: 4px; }"
+            "QComboBox QAbstractItemView::item { background-color: #08162b; color: #00f0ff; padding: 8px; min-height: 25px; }"
+            "QComboBox QAbstractItemView::item:selected { background-color: #0c213e; color: #ffffff; border-radius: 4px; }"
             "QTableWidget { background-color: #08162b; color: #00f0ff; border-radius: 8px; border: 1px solid #00f0ff; gridline-color: #0c213e; }"
             "QTableCornerButton::section { background-color: #0c213e; border: none; }"
             "QHeaderView::section { background-color: #0c213e; color: #00f0ff; padding: 8px; font-weight: bold; border: none; }"
@@ -160,7 +219,9 @@ void MainWindow::changeTheme(const QString &themeKey) {
             "QLabel#filePathLabel { background-color: #313244; color: #cdd6f4; padding: 10px; border-radius: 6px; border: none; }"
             "QLabel { color: #cdd6f4; border: none; background: transparent; }"
             "QComboBox { background-color: #313244; color: #cdd6f4; padding: 8px; border-radius: 6px; border: none; }"
-            "QComboBox QAbstractItemView { background-color: #181825; color: #cdd6f4; selection-background-color: #45475a; selection-color: #ffffff; border: 1px solid #313244; outline: 0; }"
+            "QComboBox QAbstractItemView, QListView { background-color: #181825; color: #cdd6f4; border: 1px solid #313244; outline: 0; padding: 4px; }"
+            "QComboBox QAbstractItemView::item { background-color: #181825; color: #cdd6f4; padding: 8px; min-height: 25px; }"
+            "QComboBox QAbstractItemView::item:selected { background-color: #45475a; color: #ffffff; border-radius: 4px; }"
             "QTableWidget { background-color: #181825; color: #cdd6f4; border-radius: 8px; border: 1px solid #313244; gridline-color: #313244; }"
             "QTableCornerButton::section { background-color: #313244; border: none; }"
             "QHeaderView::section { background-color: #313244; color: #cdd6f4; padding: 8px; font-weight: bold; border: none; }"
@@ -169,11 +230,10 @@ void MainWindow::changeTheme(const QString &themeKey) {
     }
 }
 
-void MainWindow::setCustomWallpaper(const QString &imagePath) {
-    if (imagePath.isEmpty()) {
-        changeTheme("dark");
-    } else {
-        qApp->setStyleSheet(QString("QMainWindow { border-image: url(%1) 0 0 0 0 stretch stretch; } color: #ffffff; font-family: 'Segoe UI', sans-serif;").arg(imagePath));
+void MainWindow::setCustomPattern(const QString &patternKey) {
+    PatternStackedWidget *customStacked = static_cast<PatternStackedWidget*>(stackedWidget);
+    if (customStacked) {
+        customStacked->setPattern(patternKey, currentTheme != "light");
     }
 }
 
@@ -205,7 +265,7 @@ QWidget* MainWindow::createPDFPage() {
 
     QHBoxLayout *optRow = new QHBoxLayout();
     comboTargetSizePDF = new QComboBox(controlFrame);
-    comboTargetSizePDF->setView(new QListView(comboTargetSizePDF)); // Fix warna dropdown
+    comboTargetSizePDF->setView(new QListView(comboTargetSizePDF));
     comboTargetSizePDF->addItem("🚀 Ultra Kompresi (Target 100 KB - 300 KB / 72 DPI)", static_cast<int>(TargetPreset::Target100_300KB));
     comboTargetSizePDF->addItem("⚡ Ekstrem (Target 300 KB - 500 KB / 96 DPI)", static_cast<int>(TargetPreset::Target300_500KB));
     comboTargetSizePDF->addItem("⚖️ Sedang / Standar Web (Target 1 MB - 2 MB / 150 DPI)", static_cast<int>(TargetPreset::Target1MB_2MB));
@@ -245,7 +305,7 @@ QWidget* MainWindow::createPDFPage() {
     layout->addWidget(historyHeader);
 
     historyTablePDF = new QTableWidget(0, 4, page);
-    historyTablePDF->verticalHeader()->setVisible(false); // Sembunyikan indeks 1, 2 di kiri
+    historyTablePDF->verticalHeader()->setVisible(false);
     historyTablePDF->setHorizontalHeaderLabels({"Nama File", "Ukuran Awal", "Ukuran Baru", "Aksi"});
     historyTablePDF->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     historyTablePDF->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -330,7 +390,7 @@ QWidget* MainWindow::createImagePage() {
     layout->addWidget(historyHeader);
 
     historyTableImg = new QTableWidget(0, 4, page);
-    historyTableImg->verticalHeader()->setVisible(false); // Sembunyikan indeks 1, 2 di kiri
+    historyTableImg->verticalHeader()->setVisible(false);
     historyTableImg->setHorizontalHeaderLabels({"Nama File", "Ukuran Awal", "Ukuran Baru", "Aksi"});
     historyTableImg->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     historyTableImg->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -341,31 +401,6 @@ QWidget* MainWindow::createImagePage() {
 
     connect(btnBrowseImg, &QPushButton::clicked, this, &MainWindow::browseImage);
     connect(btnStartImg, &QPushButton::clicked, this, &MainWindow::startImageProcess);
-
-    return page;
-}
-
-QWidget* MainWindow::createAiBgPage() {
-    QWidget *page = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(page);
-    layout->setContentsMargins(30, 30, 30, 30);
-    layout->setSpacing(15);
-
-    QLabel *header = new QLabel("✨ AI Background Removal (Offline)", page);
-    header->setObjectName("headerLabel");
-    layout->addWidget(header);
-
-    QFrame *frame = new QFrame(page);
-    frame->setObjectName("cardFrame");
-    QVBoxLayout *fLayout = new QVBoxLayout(frame);
-
-    QLabel *info = new QLabel("🤖 Engine AI ONNX Runtime offline sedang disiapkan.\nModul ini akan menghapus latar belakang foto pasfoto/produk secara otomatis tanpa koneksi internet.", frame);
-    info->setAlignment(Qt::AlignCenter);
-    info->setStyleSheet("font-size: 14px; line-height: 1.5;");
-
-    fLayout->addWidget(info);
-    layout->addWidget(frame);
-    layout->addStretch();
 
     return page;
 }

@@ -16,9 +16,11 @@
 #include <QUrl>
 #include <QTimer>
 #include <QSpinBox>
+
 #include "PdfEngine.h"
 #include "ImageEngine.h"
 #include "SettingsPage.h"
+#include "AiBgPage.h" // Include header AiBgPage
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -35,21 +37,20 @@ private slots:
     void browseImage();
     void startImageProcess();
     
-    // Handlers Tema & Wallpaper
     void changeTheme(const QString &themeKey);
-    void setCustomWallpaper(const QString &imagePath);
+    void setCustomPattern(const QString &patternKey);
 
 private:
     void setupUI();
     QWidget* createPDFPage();
     QWidget* createImagePage();
-    QWidget* createAiBgPage();
     
     QString formatFileSize(qint64 bytes);
     void addHistoryRow(QTableWidget *table, const QString &fileName, const QString &origSize, const QString &newSize, const QString &outputPath);
 
     QStackedWidget *stackedWidget;
     SettingsPage *settingsPage;
+    AiBgPage *aiBgPage; // Member variable AiBgPage
     
     // PDF Controls
     QLabel *pdfFileLabel;
@@ -80,6 +81,7 @@ private:
 
     QTimer *spinnerTimer;
     int spinnerFrame;
+    QString currentTheme;
 };
 
 #endif // MAINWINDOW_H

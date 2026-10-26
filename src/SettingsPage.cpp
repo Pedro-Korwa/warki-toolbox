@@ -13,23 +13,24 @@ void SettingsPage::setupUI() {
     layout->setSpacing(20);
 
     QLabel *header = new QLabel("⚙️ Pengaturan & Kustomisasi Tampilan", this);
-    header->setStyleSheet("font-size: 22px; font-weight: bold; color: #89b4fa;");
+    header->setObjectName("headerLabel");
     layout->addWidget(header);
 
-    // Box 1: Theme & Wallpaper
+    // Box 1: Tema & Pola Latar Belakang
     QFrame *themeFrame = new QFrame(this);
     themeFrame->setObjectName("cardFrame");
     QVBoxLayout *themeLayout = new QVBoxLayout(themeFrame);
 
-    QLabel *themeTitle = new QLabel("🎨 Tema & Latar Belakang Aplikasi", themeFrame);
+    QLabel *themeTitle = new QLabel("🎨 Tema & Pola Wallpaper Latar Belakang", themeFrame);
     themeTitle->setStyleSheet("font-size: 15px; font-weight: bold;");
     themeLayout->addWidget(themeTitle);
 
+    // Dropdown Tema
     QHBoxLayout *themeRow = new QHBoxLayout();
-    QLabel *labelTheme = new QLabel("Pilihan Tema:", themeFrame);
+    QLabel *labelTheme = new QLabel("Pilihan Tema Warna:", themeFrame);
     
     comboTheme = new QComboBox(themeFrame);
-    comboTheme->setView(new QListView(comboTheme)); // Wajib agar popup view mengikuti stylesheet 100%
+    comboTheme->setView(new QListView(comboTheme));
     comboTheme->addItem("🌙 Dark Catppuccin (Bawaan)", "dark");
     comboTheme->addItem("☀️ Light Crisp", "light");
     comboTheme->addItem("⚡ Kasuari Cyber Neon", "cyber");
@@ -38,29 +39,29 @@ void SettingsPage::setupUI() {
     themeRow->addWidget(comboTheme, 1);
     themeLayout->addLayout(themeRow);
 
-    QHBoxLayout *wallRow = new QHBoxLayout();
-    wallpaperPathLabel = new QLabel("Tidak ada wallpaper kustom (Standar)", themeFrame);
-    wallpaperPathLabel->setStyleSheet("font-size: 11px;");
+    // Dropdown Pola Latar
+    QHBoxLayout *patternRow = new QHBoxLayout();
+    QLabel *labelPattern = new QLabel("Pola Wallpaper (Fast Render):", themeFrame);
 
-    btnBrowseWallpaper = new QPushButton("🖼️ Pilih Wallpaper", themeFrame);
-    btnBrowseWallpaper->setStyleSheet("QPushButton { background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 8px 14px; border-radius: 6px; }");
+    comboPattern = new QComboBox(themeFrame);
+    comboPattern->setView(new QListView(comboPattern));
+    comboPattern->addItem("🚫 Tanpa Pola (Solid Clean)", "none");
+    comboPattern->addItem("🌌 Pola Titik-Titik (Matrix Dots)", "dots");
+    comboPattern->addItem("📐 Pola Garis Kisi (Modern Grid)", "grid");
+    comboPattern->addItem("🖥️ Pola Garis Scan (Retro Lines)", "scanlines");
 
-    btnResetWallpaper = new QPushButton("🔄 Reset", themeFrame);
-    btnResetWallpaper->setStyleSheet("QPushButton { background-color: #f38ba8; color: #11111b; font-weight: bold; padding: 8px 14px; border-radius: 6px; }");
-
-    wallRow->addWidget(wallpaperPathLabel, 1);
-    wallRow->addWidget(btnBrowseWallpaper);
-    wallRow->addWidget(btnResetWallpaper);
-    themeLayout->addLayout(wallRow);
+    patternRow->addWidget(labelPattern);
+    patternRow->addWidget(comboPattern, 1);
+    themeLayout->addLayout(patternRow);
 
     layout->addWidget(themeFrame);
 
-    // Box 2: About & GitHub
+    // Box 2: Tentang Aplikasi & GitHub
     QFrame *aboutFrame = new QFrame(this);
     aboutFrame->setObjectName("cardFrame");
     QVBoxLayout *aboutLayout = new QVBoxLayout(aboutFrame);
 
-    QLabel *aboutTitle = new QLabel("ℹ️ Tentang Warki Toolbox", aboutFrame);
+    QLabel *aboutTitle = new QLabel("Tentang Warki Toolbox", aboutFrame);
     aboutTitle->setStyleSheet("font-size: 15px; font-weight: bold;");
 
     QLabel *appInfo = new QLabel(
@@ -85,8 +86,7 @@ void SettingsPage::setupUI() {
     layout->addStretch();
 
     connect(comboTheme, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsPage::applyTheme);
-    connect(btnBrowseWallpaper, &QPushButton::clicked, this, &SettingsPage::selectWallpaper);
-    connect(btnResetWallpaper, &QPushButton::clicked, this, &SettingsPage::resetWallpaper);
+    connect(comboPattern, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsPage::applyPattern);
     
     connect(btnGithub, &QPushButton::clicked, []() {
         QDesktopServices::openUrl(QUrl("https://github.com/Pedro-Korwa/warki-toolbox"));
@@ -98,15 +98,7 @@ void SettingsPage::applyTheme(int index) {
     emit themeChanged(themeKey);
 }
 
-void SettingsPage::selectWallpaper() {
-    QString imagePath = QFileDialog::getOpenFileName(this, "Pilih Gambar Wallpaper", "", "Image Files (*.png *.jpg *.jpeg *.webp)");
-    if (!imagePath.isEmpty()) {
-        wallpaperPathLabel->setText("Wallpaper: " + QFileInfo(imagePath).fileName());
-        emit wallpaperChanged(imagePath);
-    }
-}
-
-void SettingsPage::resetWallpaper() {
-    wallpaperPathLabel->setText("Tidak ada wallpaper kustom (Standar)");
-    emit wallpaperChanged("");
+void SettingsPage::applyPattern(int index) {
+    QString patternKey = comboPattern->itemData(index).toString();
+    emit patternChanged(patternKey);
 }
