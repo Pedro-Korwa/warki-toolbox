@@ -36,4 +36,5 @@ Thumbs.db
 # Temporary & Log Files
 *.pdf
 *.log
-*.tmp
+*.tmpmodels/
+warki-bg-rs/target/
