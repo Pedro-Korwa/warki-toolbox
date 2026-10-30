@@ -8,7 +8,7 @@ Dibangun menggunakan **C++20 Native** dan kerangka kerja **Qt6**, Warki Toolbox 
 
 ## 🌟 Fitur Utama
 
-### 1. 📄 PDF Suite & Document Converter (*Nitro Pro Style*)
+### 1. 📄 PDF Suite & Document Converter
 * **Multi-Format Conversion**: Konversi file PDF ke **Word (`.docx`)**, **Excel (`.xlsx`)**, **PowerPoint (`.pptx`)**, **Gambar (`.png`, `.jpg`)**, dan **Teks Polos (`.txt`)**.
 * **Combine & Merge PDF**: Gabungkan beberapa file PDF menjadi satu dokumen utuh secara instan dengan fitur *re-order* (naik/turun urutan file) yang fleksibel.
 * **Kecepatan Tinggi & Ringan**: Pemrosesan *asynchronous C++ native* memanfaatkan eksekusi *multi-threading* (`QtConcurrent`) dan *toolchain* Poppler tanpa beban *runtime* GUI LibreOffice yang berat.
