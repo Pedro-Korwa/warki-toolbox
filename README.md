@@ -1,49 +1,49 @@
 # ⚡ Warki Toolbox
 
-**Warki Toolbox** adalah aplikasi *desktop utility suite* berkinerja tinggi, ringan, dan **100% offline** yang dirancang untuk mengolah dokumen, gambar, serta pemrosesan file secara cepat dan presisi. 
+**Warki Toolbox** is a high-performance, lightweight, and **100% offline** desktop utility suite designed for fast, accurate, and privacy-focused document processing, image manipulation, and PDF optimization.
 
-Dibangun menggunakan **C++20 Native** dan kerangka kerja **Qt6**, Warki Toolbox memberikan alternatif lokal berkualitas profesional (*Nitro Pro / Adobe Acrobat style*) tanpa ketergantungan cloud, pelacakan data, maupun keterlambatan *proses FFI/heavy runtime*.
+Built natively with **C++20** and the **Qt6** framework, Warki Toolbox provides a professional-grade local alternative (*Nitro Pro / Adobe Acrobat style*) without cloud dependencies, telemetry tracking, or heavy runtime overhead.
 
 ---
 
-## 🌟 Fitur Utama
+## 🌟 Key Features
 
 ### 1. 📄 PDF Suite & Document Converter
-* **Multi-Format Conversion**: Konversi file PDF ke **Word (`.docx`)**, **Excel (`.xlsx`)**, **PowerPoint (`.pptx`)**, **Gambar (`.png`, `.jpg`)**, dan **Teks Polos (`.txt`)**.
-* **Combine & Merge PDF**: Gabungkan beberapa file PDF menjadi satu dokumen utuh secara instan dengan fitur *re-order* (naik/turun urutan file) yang fleksibel.
-* **Kecepatan Tinggi & Ringan**: Pemrosesan *asynchronous C++ native* memanfaatkan eksekusi *multi-threading* (`QtConcurrent`) dan *toolchain* Poppler tanpa beban *runtime* GUI LibreOffice yang berat.
-* **Indikator & Operasi Aman**: Dikelengkapi *progress bar* dinamis, indikator status animasi, serta tombol **Batal (Cancel)** untuk menghentikan pemrosesan kapan saja secara aman.
+* **Multi-Format Conversion**: Convert PDF files to **Word (`.docx`)**, **Excel (`.xlsx`)**, **PowerPoint (`.pptx`)**, **Images (`.png`, `.jpg`)**, and **Plain Text (`.txt`)**.
+* **Combine & Merge PDF**: Merge multiple PDF files into a single document instantly with flexible file re-ordering (move up/down).
+* **High-Speed & Lightweight**: Powered by asynchronous C++ native processing using `QtConcurrent` multi-threading and Poppler tools without LibreOffice GUI memory overhead.
+* **Progress Tracking & Safe Operations**: Features dynamic progress bars, status indicators, and an interactive **Cancel** button to safely interrupt tasks at any time.
 
 ### 2. 📷 Photo to Document & Smart OCR
-* **Image Preprocessing (OpenCV)**: Memproses foto dokumen, buku, atau nota menggunakan teknik *Otsu Binarization* dan *Automatic Contrast Adjustment* untuk hasil ekstraksi teks yang bersih.
-* **Tesseract OCR Integration**: Ekstraksi teks berbasis *hOCR layout analysis* dengan dukungan Bahasa Indonesia (`ind`) dan Bahasa Inggris (`eng`).
-* **Rich Text / Office Preview**: Hasil ekstraksi langsung dapat dilihat dan diedit dalam tampilan pratinjau bergaya Microsoft Word/Office 2021 sebelum disimpan.
+* **Image Preprocessing (OpenCV)**: Enhances document scans, book photos, or receipts using *Otsu Binarization* and *Automatic Contrast Adjustment* for clear text extraction.
+* **Tesseract OCR Integration**: High-accuracy text extraction using *hOCR layout analysis* supporting both Indonesian (`ind`) and English (`eng`).
+* **Rich Text / Office Preview**: Directly view and edit extracted content in a Microsoft Word / Office 2021 style preview pane before saving.
 
 ### 3. ✨ Background Removal (`RMBG-1.4`)
-* **Hapus Latar Belakang Foto**: Mengisolasi subjek foto secara presisi menggunakan integrasi AI lokal tanpa memerlukan koneksi internet.
-* **Preset Warna & Transparansi**: Pilih latar belakang transparan (PNG) atau terapkan warna pasfoto standar (Merah, Biru, Putih) secara instan.
+* **AI Photo Background Removal**: Isolate photo subjects accurately using a local AI engine without needing an internet connection.
+* **Color Presets & Transparency**: Export with transparent backgrounds (PNG) or apply standard ID photo backdrop colors (Red, Blue, White) instantly.
 
 ### 4. 🖼️ Image Resizer & Quality Compressor
-* **Dimensi Kustom**: Ubah ukuran lebar (*width*) dan tinggi (*height*) gambar (`.jpg`, `.png`, `.webp`) dalam piksel.
-* **Kompresi Kualitas**: Atur tingkat kompresi file untuk menghemat ruang penyimpanan tanpa merusak estetika visual.
+* **Custom Dimensions**: Resize image width and height (`.jpg`, `.png`, `.webp`) in exact pixels.
+* **Quality Compression**: Adjust compression levels to save storage space without sacrificing visual fidelity.
 
 ### 5. 📄 PDF Compressor
-* **Preset Target Ukuran**: Pilihan kompresi ultra (*Target 100 KB - 300 KB*), ekstrem, hingga standar web untuk kebutuhan pendaftaran dokumen resmi.
+* **Target Size Presets**: Preset targets ranging from ultra-compression (*100 KB - 300 KB*) to web-standard for official form submission requirements.
 
 ---
 
-## 🎨 Antarmuka Pengguna (UI & Themes)
+## 🎨 User Interface (UI & Themes)
 
-Dikembangkan menggunakan prinsip antarmuka modern yang nyaman di mata (*eye-pleasing*) dan tidak kaku:
-* **Tema Bawaan**: *Dark Catppuccin*, *Cyberpunk*, dan *Light Mode*.
-* **Custom Background Patterns**: Pilihan pola latar latar belakang animasi (*Dots*, *Grid*, *Scanlines*).
-* **Layout Stabil**: Komponen UI terkunci (*fixed layout constraints*) untuk mencegah gangguan visual (*jumping/flickering*) saat animasi pemrosesan berlangsung.
+Designed with modern, eye-pleasing UI principles for long working hours:
+* **Built-in Themes**: *Dark Catppuccin*, *Cyberpunk*, and *Light Mode*.
+* **Custom Background Patterns**: Interactive pattern overlays (*Dots*, *Grid*, *Scanlines*).
+* **Stable Layout Constraints**: Fixed UI element heights prevent flickering or dynamic layout shifting during background task execution.
 
 ---
 
-## 🛠️ Arsitektur & Teknologi
+## 🛠️ Architecture & Tech Stack
 
-* **Bahasa**: C++20
+* **Language**: C++20
 * **GUI Framework**: Qt6 (Widgets, Concurrent, PrintSupport)
 * **Image Processing**: OpenCV C++
 * **OCR Engine**: Tesseract OCR C++ API (`libtesseract`) & Leptonica (`liblept`)
@@ -52,10 +52,10 @@ Dikembangkan menggunakan prinsip antarmuka modern yang nyaman di mata (*eye-plea
 
 ---
 
-## 🚀 Panduan Instalasi & Kompilasi (Linux / Ubuntu / Mint)
+## 🚀 Installation & Build Guide (Linux / Ubuntu / Mint)
 
-### 1. Install Dependensi Sistem
-Jalankan perintah berikut di terminal untuk memasang compiler C++, Qt6, OpenCV, Tesseract, dan tools dokumen pendukung:
+### 1. Install System Dependencies
+Run the following command in your terminal to install the C++ compiler, Qt6, OpenCV, Tesseract, and document utility packages:
 
 ```bash
 sudo apt update && sudo apt install -y \
@@ -70,38 +70,39 @@ sudo apt update && sudo apt install -y \
     poppler-utils \
     pandoc
 
-2. Clone Repositori
+2. Clone Repository
 Bash
 
-git clone [https://github.com/username/warki-toolbox.git](https://github.com/username/warki-toolbox.git)
+git clone [https://github.com/Pedro-Korwa/warki-toolbox.git](https://github.com/Pedro-Korwa/warki-toolbox.git)
 cd warki-toolbox
 
-3. Kompilasi Proyek
+3. Build Project
 Bash
 
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
 
-4. Jalankan Aplikasi
+4. Run Application
 Bash
 
 ./WarkiToolbox
 
-📂 Struktur Proyek
+📂 Project Structure
 Plaintext
 
 warki-toolbox/
 ├── src/
-│   ├── main.cpp                 # Entry point aplikasi
-│   ├── MainWindow.h/.cpp        # Jendela utama & navigasi sidebar
-│   ├── DocConverterPage.h/.cpp # Modul PDF Converter & Combine PDF
-│   ├── OcrEngine.h/.cpp         # Engine OCR Tesseract & Preprocessing OpenCV
-│   ├── AiBgPage.h/.cpp          # Modul AI Hapus Background Foto
-│   ├── BgEngine.h/.cpp          # Core engine pemrosesan latar belakang
-│   ├── PdfEngine.h/.cpp         # Engine kompresi PDF
-│   ├── ImageEngine.h/.cpp       # Engine resizer & kompresi gambar
-│   └── SettingsPage.h/.cpp      # Pengaturan tema dan pola latar belakang
-├── CMakeLists.txt               # Konfigurasi build CMake
-├── .gitignore                   # Aturan pengabaian file Git
-└── README.md                    # Dokumentasi proyek
+│   ├── main.cpp                 # Application entry point
+│   ├── MainWindow.h/.cpp        # Main window & sidebar navigation
+│   ├── DocConverterPage.h/.cpp # PDF Converter & Combine PDF page
+│   ├── OcrEngine.h/.cpp         # Tesseract OCR & OpenCV Preprocessing engine
+│   ├── AiBgPage.h/.cpp          # AI Background Removal UI page
+│   ├── BgEngine.h/.cpp          # Core background removal engine
+│   ├── PdfEngine.h/.cpp         # PDF Compression engine
+│   ├── ImageEngine.h/.cpp       # Image resizer & quality compression engine
+│   └── SettingsPage.h/.cpp      # Theme & background pattern settings
+├── CMakeLists.txt               # CMake build configuration
+├── .gitignore                   # Git ignore rules
+└── README.md                    # Project documentation
+
