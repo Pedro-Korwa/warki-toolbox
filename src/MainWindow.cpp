@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QPainter>
 #include <QPaintEvent>
+#include "DocConverterPage.h"
 
 class PatternStackedWidget : public QStackedWidget {
 public:
@@ -63,6 +64,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), selectedFileSize(
     spinnerTimer = new QTimer(this);
     connect(spinnerTimer, &QTimer::timeout, this, &MainWindow::updateSpinnerAnimation);
 
+// Di dalam private class MainWindow:
+DocConverterPage *docConverterPage;
+
     setupUI();
 }
 
@@ -105,49 +109,57 @@ void MainWindow::setupUI() {
     QPushButton *btnNavPDF      = new QPushButton("📄  Kompres PDF", sidebar);
     QPushButton *btnNavImg      = new QPushButton("🖼️  Resize Gambar", sidebar);
     QPushButton *btnNavAI       = new QPushButton("✨  Hapus BG", sidebar);
+    QPushButton *btnNavDoc      = new QPushButton("📄  OCR & Konversi", sidebar);
     QPushButton *btnNavSettings = new QPushButton("⚙️  Pengaturan", sidebar);
 
     btnNavPDF->setObjectName("navButton");
     btnNavImg->setObjectName("navButton");
     btnNavAI->setObjectName("navButton");
+    btnNavDoc->setObjectName("navButton");
     btnNavSettings->setObjectName("navButton");
 
     btnNavPDF->setCheckable(true);
     btnNavImg->setCheckable(true);
     btnNavAI->setCheckable(true);
+    btnNavDoc->setCheckable(true);
     btnNavSettings->setCheckable(true);
     btnNavPDF->setChecked(true);
 
     sidebarLayout->addWidget(btnNavPDF);
     sidebarLayout->addWidget(btnNavImg);
     sidebarLayout->addWidget(btnNavAI);
+    sidebarLayout->addWidget(btnNavDoc);
     sidebarLayout->addStretch();
     sidebarLayout->addWidget(btnNavSettings);
 
     settingsPage = new SettingsPage(this);
-    aiBgPage = new AiBgPage(this); // Inisialisasi Halaman AI BG
+    aiBgPage = new AiBgPage(this); 
+    docConverterPage = new DocConverterPage(this); // Inisialisasi Halaman OCR & Konversi Dokumen
 
     PatternStackedWidget *customStacked = new PatternStackedWidget(this);
     stackedWidget = customStacked;
-    stackedWidget->addWidget(createPDFPage());   // Index 0
-    stackedWidget->addWidget(createImagePage()); // Index 1
-    stackedWidget->addWidget(aiBgPage);          // Index 2 (Sudah terhubung)
-    stackedWidget->addWidget(settingsPage);     // Index 3
+    stackedWidget->addWidget(createPDFPage());    // Index 0
+    stackedWidget->addWidget(createImagePage());  // Index 1
+    stackedWidget->addWidget(aiBgPage);           // Index 2
+    stackedWidget->addWidget(docConverterPage);   // Index 3
+    stackedWidget->addWidget(settingsPage);      // Index 4
 
     connect(settingsPage, &SettingsPage::themeChanged, this, &MainWindow::changeTheme);
     connect(settingsPage, &SettingsPage::patternChanged, this, &MainWindow::setCustomPattern);
 
-    auto clearChecks = [btnNavPDF, btnNavImg, btnNavAI, btnNavSettings]() {
+    auto clearChecks = [btnNavPDF, btnNavImg, btnNavAI, btnNavDoc, btnNavSettings]() {
         btnNavPDF->setChecked(false);
         btnNavImg->setChecked(false);
         btnNavAI->setChecked(false);
+        btnNavDoc->setChecked(false);
         btnNavSettings->setChecked(false);
     };
 
     connect(btnNavPDF, &QPushButton::clicked, [this, clearChecks, btnNavPDF]() { clearChecks(); btnNavPDF->setChecked(true); stackedWidget->setCurrentIndex(0); });
     connect(btnNavImg, &QPushButton::clicked, [this, clearChecks, btnNavImg]() { clearChecks(); btnNavImg->setChecked(true); stackedWidget->setCurrentIndex(1); });
     connect(btnNavAI, &QPushButton::clicked, [this, clearChecks, btnNavAI]() { clearChecks(); btnNavAI->setChecked(true); stackedWidget->setCurrentIndex(2); });
-    connect(btnNavSettings, &QPushButton::clicked, [this, clearChecks, btnNavSettings]() { clearChecks(); btnNavSettings->setChecked(true); stackedWidget->setCurrentIndex(3); });
+    connect(btnNavDoc, &QPushButton::clicked, [this, clearChecks, btnNavDoc]() { clearChecks(); btnNavDoc->setChecked(true); stackedWidget->setCurrentIndex(3); });
+    connect(btnNavSettings, &QPushButton::clicked, [this, clearChecks, btnNavSettings]() { clearChecks(); btnNavSettings->setChecked(true); stackedWidget->setCurrentIndex(4); });
 
     mainLayout->addWidget(sidebar);
     mainLayout->addWidget(stackedWidget, 1);
@@ -180,6 +192,7 @@ void MainWindow::changeTheme(const QString &themeKey) {
             "QTableCornerButton::section { background-color: #dce0e8; border: none; }"
             "QHeaderView::section { background-color: #dce0e8; color: #4c4f69; padding: 8px; font-weight: bold; border: none; }"
             "QSpinBox { background-color: #dce0e8; color: #4c4f69; padding: 8px; border-radius: 6px; border: none; }"
+            "QTextEdit { background-color: #dce0e8; color: #4c4f69; border: 1px solid #ccd0da; border-radius: 8px; padding: 8px; }"
         );
     } else if (themeKey == "cyber") {
         qApp->setStyleSheet(
@@ -203,6 +216,7 @@ void MainWindow::changeTheme(const QString &themeKey) {
             "QTableCornerButton::section { background-color: #0c213e; border: none; }"
             "QHeaderView::section { background-color: #0c213e; color: #00f0ff; padding: 8px; font-weight: bold; border: none; }"
             "QSpinBox { background-color: #0c213e; color: #00f0ff; padding: 8px; border-radius: 6px; border: none; }"
+            "QTextEdit { background-color: #0c213e; color: #00f0ff; border: 1px solid #00f0ff; border-radius: 8px; padding: 8px; }"
         );
     } else { // Dark Catppuccin (Default)
         qApp->setStyleSheet(
@@ -226,6 +240,7 @@ void MainWindow::changeTheme(const QString &themeKey) {
             "QTableCornerButton::section { background-color: #313244; border: none; }"
             "QHeaderView::section { background-color: #313244; color: #cdd6f4; padding: 8px; font-weight: bold; border: none; }"
             "QSpinBox { background-color: #313244; color: #cdd6f4; padding: 8px; border-radius: 6px; border: none; }"
+            "QTextEdit { background-color: #1e1e2e; color: #cdd6f4; border: 1px solid #313244; border-radius: 8px; padding: 8px; }"
         );
     }
 }

@@ -8,10 +8,15 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# 1. Cari Package Qt 6 (Termasuk PrintSupport)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport)
+# 1. Cari Package Utama (Qt6, OpenCV, Tesseract, Leptonica)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport Concurrent)
+find_package(OpenCV REQUIRED)
 
-# 2. Definisikan Target Executable
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(TESSERACT REQUIRED tesseract)
+pkg_check_modules(LEPTONICA REQUIRED lept)
+
+# 2. Daftarkan Seluruh File Source dan Header C++
 add_executable(WarkiToolbox
     src/main.cpp
     src/MainWindow.cpp
@@ -30,12 +35,27 @@ add_executable(WarkiToolbox
     src/AiBgPage.h
     src/PrintLayoutDialog.cpp
     src/PrintLayoutDialog.h
+    src/OcrEngine.cpp
+    src/OcrEngine.h
+    src/DocConverterPage.cpp
+    src/DocConverterPage.h
 )
 
-# 3. Hubungkan Libraries
+# 3. Include Directories
+target_include_directories(WarkiToolbox PRIVATE 
+    ${OpenCV_INCLUDE_DIRS} 
+    ${TESSERACT_INCLUDE_DIRS} 
+    ${LEPTONICA_INCLUDE_DIRS}
+)
+
+# 4. Link Libraries
 target_link_libraries(WarkiToolbox PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
     Qt6::PrintSupport
+    Qt6::Concurrent
+    ${OpenCV_LIBS}
+    ${TESSERACT_LIBRARIES}
+    ${LEPTONICA_LIBRARIES}
 )

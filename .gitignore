@@ -1,6 +1,12 @@
+# Build Directories & Artifacts
 build/
 bin/
 lib/
+target/
+*_autogen/
+.cmake/
+
+# Binary & Compiled Files
 *.o
 *.obj
 *.so
@@ -8,14 +14,17 @@ lib/
 *.dll
 *.exe
 *.a
+WarkiToolbox
+
+# CMake Generated Files
 CMakeCache.txt
 CMakeFiles/
 CMakeLists.txt.user
 Makefile
 *.cmake
 !CMakeLists.txt
-*_autogen/
-.cmake/
+
+# IDE & System Files
 .vscode/
 .idea/
 *.swp
@@ -23,6 +32,8 @@ Makefile
 *~
 .DS_Store
 Thumbs.db
+
+# Temporary & Log Files
 *.pdf
 *.log
 *.tmp

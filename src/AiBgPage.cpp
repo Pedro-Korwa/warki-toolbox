@@ -2,13 +2,21 @@
 #include "PrintLayoutDialog.h"
 #include <QMessageBox>
 #include <QResizeEvent>
+#include <QPainter>
+#include <QtConcurrent/QtConcurrent>
+#include <QFutureWatcher>
 
-AiBgPage::AiBgPage(QWidget *parent) : QWidget(parent) {
+AiBgPage::AiBgPage(QWidget *parent) : QWidget(parent), loadingTimer(nullptr) {
     bgEngine = new BgEngine(this);
     setupUI();
 }
 
-AiBgPage::~AiBgPage() {}
+AiBgPage::~AiBgPage() {
+    if (loadingTimer) {
+        loadingTimer->stop();
+        delete loadingTimer;
+    }
+}
 
 void AiBgPage::setupUI() {
     QVBoxLayout *layout = new QVBoxLayout(this);
@@ -24,12 +32,15 @@ void AiBgPage::setupUI() {
     QVBoxLayout *fLayout = new QVBoxLayout(frame);
     fLayout->setSpacing(15);
 
-    // Box Pratinjau Foto Dinamis Memanfaatkan Ruang Kosong Maksimal
     imagePreviewLabel = new QLabel("Pilih foto pasfoto/produk untuk diproses...", frame);
     imagePreviewLabel->setAlignment(Qt::AlignCenter);
-    imagePreviewLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    
+    // KUNCI UTAMA FIX: Mencegah QLabel memaksa ukuran Layout membengkak
+    imagePreviewLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    imagePreviewLabel->setMinimumSize(200, 200);
     imagePreviewLabel->setStyleSheet("border: 2px dashed #313244; border-radius: 8px; background-color: #181825; color: #a6adc8;");
-    fLayout->addWidget(imagePreviewLabel, 1); // Stretch factor 1 agar mengisi seluruh ruang atas
+    
+    fLayout->addWidget(imagePreviewLabel, 1);
 
     QHBoxLayout *actionRow = new QHBoxLayout();
     btnBrowse = new QPushButton("🖼️ Pilih Foto", frame);
@@ -101,6 +112,8 @@ void AiBgPage::browseImage() {
     if (!path.isEmpty()) {
         currentImgPath = path;
         currentLoadedImg.load(path);
+        
+        transparentCache = QImage();
         processedImg = currentLoadedImg;
 
         updatePreview();
@@ -115,10 +128,125 @@ void AiBgPage::browseImage() {
     }
 }
 
+void AiBgPage::drawLightningLoading(const QString &statusText) {
+    int w = imagePreviewLabel->width();
+    int h = imagePreviewLabel->height();
+    if (w < 100 || h < 100) { w = 300; h = 300; }
+
+    QPixmap pixmap(w, h);
+    pixmap.fill(QColor("#181825"));
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    int cx = w / 2;
+    int cy = h / 2 - 15;
+
+    int glowAlpha = 40 + (animationFrame * 15) % 80;
+    QRadialGradient glow(cx, cy, 40);
+    glow.setColorAt(0, QColor(137, 180, 250, glowAlpha));
+    glow.setColorAt(1, QColor(24, 24, 37, 0));
+    painter.setBrush(glow);
+    painter.setPen(Qt::NoPen);
+    painter.drawEllipse(cx - 40, cy - 40, 80, 80);
+
+    QPolygonF lightning;
+    lightning << QPointF(cx + 3, cy - 20)
+              << QPointF(cx - 10, cy + 2)
+              << QPointF(cx - 2, cy + 2)
+              << QPointF(cx - 5, cy + 20)
+              << QPointF(cx + 10, cy - 2)
+              << QPointF(cx + 2, cy - 2);
+
+    QColor mainNeon = (animationFrame % 2 == 0) ? QColor("#89b4fa") : QColor("#cba6f7");
+
+    painter.setBrush(QColor("#11111b"));
+    painter.drawPolygon(lightning.translated(2, 2));
+
+    painter.setBrush(mainNeon);
+    painter.drawPolygon(lightning);
+
+    painter.setPen(QColor("#a6adc8"));
+    QFont font("SansSerif", 9, QFont::Normal);
+    painter.setFont(font);
+
+    QRect textRect(0, cy + 30, w, 20);
+    painter.drawText(textRect, Qt::AlignCenter, statusText);
+
+    painter.end();
+    
+    imagePreviewLabel->setPixmap(pixmap);
+}
+
 void AiBgPage::applyPresetColor(const QColor &color) {
     if (currentLoadedImg.isNull()) return;
 
-    processedImg = bgEngine->replaceBackground(currentLoadedImg, color);
+    if (transparentCache.isNull()) {
+        this->setCursor(Qt::WaitCursor);
+
+        btnBrowse->setEnabled(false);
+        btnRed->setEnabled(false);
+        btnBlue->setEnabled(false);
+        btnWhite->setEnabled(false);
+        btnCustomColor->setEnabled(false);
+
+        animationFrame = 0;
+        if (!loadingTimer) {
+            loadingTimer = new QTimer(this);
+        }
+        
+        loadingTimer->disconnect();
+        connect(loadingTimer, &QTimer::timeout, this, [this]() {
+            animationFrame++;
+            drawLightningLoading("Memproses AI Background Remover...");
+        });
+        
+        drawLightningLoading("Memproses AI Background Remover...");
+        loadingTimer->start(80);
+
+        QFutureWatcher<QImage> *watcher = new QFutureWatcher<QImage>(this);
+        connect(watcher, &QFutureWatcher<QImage>::finished, this, [this, watcher, color]() {
+            if (loadingTimer) {
+                loadingTimer->stop();
+                loadingTimer->disconnect();
+            }
+
+            transparentCache = watcher->result();
+            this->setCursor(Qt::ArrowCursor);
+
+            btnBrowse->setEnabled(true);
+            btnRed->setEnabled(true);
+            btnBlue->setEnabled(true);
+            btnWhite->setEnabled(true);
+            btnCustomColor->setEnabled(true);
+
+            renderColorOnCache(color);
+            watcher->deleteLater();
+        });
+
+        QFuture<QImage> future = QtConcurrent::run([this]() {
+            return bgEngine->removeBackground(currentLoadedImg);
+        });
+        watcher->setFuture(future);
+
+    } else {
+        renderColorOnCache(color);
+    }
+}
+
+void AiBgPage::renderColorOnCache(const QColor &color) {
+    if (transparentCache.isNull()) return;
+
+    QImage finalImg(transparentCache.size(), QImage::Format_ARGB32);
+    finalImg.fill(color);
+
+    QPainter painter(&finalImg);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.drawImage(0, 0, transparentCache);
+    painter.end();
+
+    processedImg = finalImg;
     updatePreview();
 }
 
@@ -132,14 +260,23 @@ void AiBgPage::openColorPicker() {
 void AiBgPage::updatePreview() {
     if (processedImg.isNull()) return;
     
-    // Menggunakan ukuran area label secara dinamis (dikurangi sedikit padding)
-    QSize targetSize = imagePreviewLabel->size() - QSize(20, 20);
-    if (targetSize.width() < 100 || targetSize.height() < 100) {
-        targetSize = QSize(400, 400);
-    }
+    // Hitung ukuran maksimum area label saat ini
+    QSize labelSize = imagePreviewLabel->size();
+    if (labelSize.width() < 50 || labelSize.height() < 50) return;
 
-    QPixmap p = QPixmap::fromImage(processedImg).scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    // Scale pixmap agar muat persis di dalam bingkai tanpa mendorong layout keluar
+    QPixmap p = QPixmap::fromImage(processedImg).scaled(
+        labelSize, 
+        Qt::KeepAspectRatio, 
+        Qt::SmoothTransformation
+    );
+    
     imagePreviewLabel->setPixmap(p);
+}
+
+void AiBgPage::resizeEvent(QResizeEvent *event) {
+    QWidget::resizeEvent(event);
+    updatePreview();
 }
 
 void AiBgPage::showZoomModal() {

@@ -4,13 +4,15 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QFileDialog>
 #include <QColorDialog>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QFrame>
-#include <QDialog>
 #include <QScrollArea>
+#include <QDialog>
+#include <QResizeEvent>
+#include <QTimer>
 #include "BgEngine.h"
 
 class AiBgPage : public QWidget {
@@ -20,32 +22,40 @@ public:
     explicit AiBgPage(QWidget *parent = nullptr);
     ~AiBgPage();
 
-private slots:
-    void browseImage();
-    void applyPresetColor(const QColor &color);
-    void openColorPicker();
-    void saveImage();
-    void showZoomModal();
-    void openPrintDialog();
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
-    void setupUI();
-    void updatePreview();
+    BgEngine *bgEngine;
+    
+    QImage currentLoadedImg;   // Gambar asli dari user
+    QImage transparentCache;   // Cache hasil potong AI RMBG-1.4
+    QImage processedImg;       // Gambar hasil akhir dengan latar warna
+    QString currentImgPath;
+
+    QTimer *loadingTimer;
+    int animationFrame = 0;
 
     QLabel *imagePreviewLabel;
     QPushButton *btnBrowse;
+    QPushButton *btnZoom;
+    QPushButton *btnSave;
+    QPushButton *btnPrintLayout;
     QPushButton *btnRed;
     QPushButton *btnBlue;
     QPushButton *btnWhite;
     QPushButton *btnCustomColor;
-    QPushButton *btnZoom;
-    QPushButton *btnSave;
-    QPushButton *btnPrintLayout;
 
-    BgEngine *bgEngine;
-    QImage currentLoadedImg;
-    QImage processedImg;
-    QString currentImgPath;
+    void setupUI();
+    void browseImage();
+    void applyPresetColor(const QColor &color);
+    void openColorPicker();
+    void updatePreview();
+    void showZoomModal();
+    void saveImage();
+    void openPrintDialog();
+    void renderColorOnCache(const QColor &color);
+    void drawLightningLoading(const QString &statusText = "Memproses...");
 };
 
 #endif // AIBGPAGE_H
