@@ -4,8 +4,11 @@
 #include <QObject>
 #include <QImage>
 #include <QString>
+
+#ifdef ENABLE_OCR
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
+#endif
 
 enum class ExportFormat {
     TXT,
@@ -28,7 +31,9 @@ public:
     bool exportToFile(const QString &htmlContent, const QImage &sourceImg, const QString &outputPath, ExportFormat format);
 
 private:
-    tesseract::TessBaseAPI *tessApi;
+#ifdef ENABLE_OCR
+    tesseract::TessBaseAPI *tessApi = nullptr;
+#endif
     QImage preprocessForOcr(const QImage &inputImg);
 };
 
