@@ -1,0 +1,51 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.2'
+        arch: 'win64_mingw64'
+
+    - name: Setup MinGW
+      uses: egor-tisin/setup-mingw@v2
+      with:
+        platform: x64
+
+    - name: Configure CMake
+      run: |
+        mkdir build-ci
+        cd build-ci
+        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Project
+      run: |
+        cd build-ci
+        cmake --build . --config Release
+
+    - name: Bundle Qt DLLs (windeployqt)
+      run: |
+        windeployqt --no-compiler-runtime build-ci/Release/WarkiToolbox.exe || windeployqt --no-compiler-runtime build-ci/WarkiToolbox.exe
+
+    - name: Upload Executable Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: WarkiToolbox-Windows-x64
+        path: |
+          build-ci/WarkiToolbox.exe
+          build-ci/Release/WarkiToolbox.exe
+          build-ci/*.dll
+          build-ci/Release/*.dll
