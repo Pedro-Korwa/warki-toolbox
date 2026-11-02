@@ -22,26 +22,29 @@ jobs:
 
     - name: Configure CMake
       run: |
-        mkdir build-ci
-        cd build-ci
-        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$env:Qt6_DIR
+        cmake -B build-ci -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
     - name: Build Project
       run: |
-        cd build-ci
-        cmake --build . --config Release
+        cmake --build build-ci --config Release
 
-    - name: Bundle Qt DLLs (windeployqt)
+    - name: Bundle Qt DLLs and MinGW Runtimes
+      shell: powershell
       run: |
-        $exePath = Get-ChildItem -Path build-ci -Filter *.exe -Recurse | Select-Object -ExpandProperty FullName -First 1
-        windeployqt --no-compiler-runtime $exePath
+        # Jalankan windeployqt dengan flag runtime kompilator
+        windeployqt --compiler-runtime build-ci/WarkiToolbox.exe
+        
+        # Ambil path folder bin MinGW/GCC di runner
+        $gccPath = (Get-Command gcc).Source
+        $binDir = Split-Path -Path $gccPath
+        
+        # Salin secara eksplisit DLL C++ MinGW yang sering ketinggalan
+        Copy-Item "$binDir\libgcc_s_seh-1.dll" -Destination "build-ci\" -Force -ErrorAction SilentlyContinue
+        Copy-Item "$binDir\libstdc++-6.dll" -Destination "build-ci\" -Force -ErrorAction SilentlyContinue
+        Copy-Item "$binDir\libwinpthread-1.dll" -Destination "build-ci\" -Force -ErrorAction SilentlyContinue
 
     - name: Upload Executable Artifact
       uses: actions/upload-artifact@v4
       with:
         name: WarkiToolbox-Windows-x64
-        path: |
-          build-ci/*.exe
-          build-ci/Release/*.exe
-          build-ci/*.dll
-          build-ci/Release/*.dll
+        path: build-ci/
