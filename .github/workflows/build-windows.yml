@@ -24,7 +24,7 @@ jobs:
       run: |
         mkdir build-ci
         cd build-ci
-        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$env:Qt6_DIR
 
     - name: Build Project
       run: |
@@ -33,7 +33,8 @@ jobs:
 
     - name: Bundle Qt DLLs (windeployqt)
       run: |
-        windeployqt --no-compiler-runtime build-ci/Release/WarkiToolbox.exe || windeployqt --no-compiler-runtime build-ci/WarkiToolbox.exe
+        $exePath = Get-ChildItem -Path build-ci -Filter *.exe -Recurse | Select-Object -ExpandProperty FullName -First 1
+        windeployqt --no-compiler-runtime $exePath
 
     - name: Upload Executable Artifact
       uses: actions/upload-artifact@v4
