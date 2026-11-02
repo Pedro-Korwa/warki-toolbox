@@ -4,9 +4,10 @@
 #include <QTextDocument>
 #include <QPrinter>
 #include <QRegularExpression>
-#include <opencv2/opencv.hpp>
+#include <QDebug>
 
 OcrEngine::OcrEngine(QObject *parent) : QObject(parent) {
+#ifdef ENABLE_OCR
     tessApi = new tesseract::TessBaseAPI();
     
     // Inisialisasi Tesseract dengan Bahasa Indonesia dan Inggris
@@ -17,49 +18,44 @@ OcrEngine::OcrEngine(QObject *parent) : QObject(parent) {
     // Tentukan parameter penting untuk akurasi teks & dokumen
     tessApi->SetVariable("user_defined_dpi", "300");
     tessApi->SetVariable("preserve_interword_spaces", "1");
+#endif
 }
 
 OcrEngine::~OcrEngine() {
+#ifdef ENABLE_OCR
     if (tessApi) {
         tessApi->End();
         delete tessApi;
     }
+#endif
 }
 
 QImage OcrEngine::preprocessForOcr(const QImage &inputImg) {
-    QImage qImg = inputImg.convertToFormat(QImage::Format_RGBA8888);
-    cv::Mat src(qImg.height(), qImg.width(), CV_8UC4, (void*)qImg.bits(), qImg.bytesPerLine());
+    if (inputImg.isNull()) return QImage();
 
-    cv::Mat gray, resized, thresh;
+    // 1. Ubah ke Grayscale8 menggunakan fungsi bawaan Qt (Tanpa OpenCV)
+    QImage gray = inputImg.convertToFormat(QImage::Format_Grayscale8);
 
-    // 1. Ubah ke Grayscale
-    cv::cvtColor(src, gray, cv::COLOR_RGBA2GRAY);
-
-    // 2. Upscale Gambar jika tinggi kurang dari 2000px (Kunci Utama Tesseract Presisi)
-    if (gray.rows < 2000) {
-        double scale = 2000.0 / gray.rows;
-        cv::resize(gray, resized, cv::Size(), scale, scale, cv::INTER_CUBIC);
-    } else {
-        resized = gray.clone();
+    // 2. Upscale Gambar jika tinggi kurang dari 2000px untuk meningkatkan presisi OCR
+    if (gray.height() < 2000 && gray.height() > 0) {
+        double scale = 2000.0 / gray.height();
+        int newWidth = static_cast<int>(gray.width() * scale);
+        gray = gray.scaled(newWidth, 2000, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
-    // 3. Denoise & Binarisasi Otsu Automatic Thresholding
-    cv::Mat blur;
-    cv::GaussianBlur(resized, blur, cv::Size(3, 3), 0);
-    cv::threshold(blur, thresh, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-
-    // Convert balik ke QImage Grayscale
-    QImage result(thresh.data, thresh.cols, thresh.rows, thresh.step, QImage::Format_Grayscale8);
-    return result.copy();
+    return gray;
 }
 
 QString OcrEngine::processImageToHtml(const QImage &inputImg) {
-    if (inputImg.isNull() || !tessApi) return "";
+    if (inputImg.isNull()) return "";
 
-    // Preprocessing tingkat tinggi via OpenCV
+#ifdef ENABLE_OCR
+    if (!tessApi) return "";
+
+    // Preprocessing gambar menggunakan Qt Native
     QImage cleanImg = preprocessForOcr(inputImg);
 
-    // Set PSM ke Auto Page Segmentation (Sangat ampuh untuk surat resmi bertabel)
+    // Set PSM ke Auto Page Segmentation
     tessApi->SetPageSegMode(tesseract::PSM_AUTO);
     tessApi->SetImage(cleanImg.bits(), cleanImg.width(), cleanImg.height(), 1, cleanImg.bytesPerLine());
 
@@ -81,9 +77,14 @@ QString OcrEngine::processImageToHtml(const QImage &inputImg) {
                          "</style></head><body>" + hocrStr + "</body></html>";
 
     return styledHtml;
+#else
+    qWarning() << "Tesseract & OpenCV OCR are disabled in this build configuration.";
+    return QString("<html><body><p>Fitur OCR dinonaktifkan pada versi build ini.</p></body></html>");
+#endif
 }
 
 bool OcrEngine::exportToFile(const QString &htmlContent, const QImage &sourceImg, const QString &outputPath, ExportFormat format) {
+    Q_UNUSED(sourceImg);
     if (htmlContent.isEmpty()) return false;
 
     if (format == ExportFormat::PDF) {
