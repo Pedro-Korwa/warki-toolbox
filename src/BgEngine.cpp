@@ -2,8 +2,12 @@
 #include <QPainter>
 #include <QFile>
 #include <QDir>
+#include <QDebug>
+
+#ifdef ENABLE_OPENCV
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
+#endif
 
 BgEngine::BgEngine(QObject *parent) : QObject(parent) {}
 BgEngine::~BgEngine() {}
@@ -11,6 +15,7 @@ BgEngine::~BgEngine() {}
 QImage BgEngine::removeBackground(const QImage &inputImg) {
     if (inputImg.isNull()) return inputImg;
 
+#ifdef ENABLE_OPENCV
     // Cari lokasi model rmbg-1.4.onnx di beberapa kemungkinan path
     QString modelPath = "";
     QStringList possiblePaths = {
@@ -71,6 +76,10 @@ QImage BgEngine::removeBackground(const QImage &inputImg) {
     } catch (const cv::Exception &e) {
         return inputImg;
     }
+#else
+    qWarning() << "OpenCV is disabled for this build target. Returning original image.";
+    return inputImg;
+#endif
 }
 
 QImage BgEngine::replaceBackground(const QImage &inputImg, const QColor &bgColor) {
