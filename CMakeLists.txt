@@ -41,6 +41,7 @@ add_executable(WarkiToolbox
     src/DocConverterPage.h
 )
 
+
 # 3. Include Directories
 target_include_directories(WarkiToolbox PRIVATE 
     # ${OpenCV_INCLUDE_DIRS} 
