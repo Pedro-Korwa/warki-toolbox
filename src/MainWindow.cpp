@@ -5,6 +5,9 @@
 #include <QThread>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QRect>
 #include "DocConverterPage.h"
 
 class PatternStackedWidget : public QStackedWidget {
@@ -58,6 +61,27 @@ private:
 };
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), selectedFileSize(0), spinnerFrame(0), currentTheme("dark") {
+    // 1. Deteksi Resolusi Layar Otomatis (Responsive & Centered)
+    QScreen *primaryScreen = QGuiApplication::primaryScreen();
+    if (primaryScreen) {
+        QRect availableGeometry = primaryScreen->availableGeometry();
+        
+        // Hitung 80% dari area layar aktif pengguna
+        int responsiveWidth = availableGeometry.width() * 0.80;
+        int responsiveHeight = availableGeometry.height() * 0.80;
+
+        resize(responsiveWidth, responsiveHeight);
+        setMinimumSize(850, 580);
+
+        // Posisikan jendela tepat di tengah layar
+        int centerX = availableGeometry.x() + (availableGeometry.width() - responsiveWidth) / 2;
+        int centerY = availableGeometry.y() + (availableGeometry.height() - responsiveHeight) / 2;
+        move(centerX, centerY);
+    } else {
+        resize(1020, 700);
+        setMinimumSize(850, 580);
+    }
+
     pdfEngine = new PdfEngine(this);
     imageEngine = new ImageEngine(this);
     
@@ -80,7 +104,6 @@ QString MainWindow::formatFileSize(qint64 bytes) {
 
 void MainWindow::setupUI() {
     setWindowTitle("Warki Toolbox - Professional Desktop Utility");
-    resize(1020, 700);
 
     QWidget *centralWidget = new QWidget(this);
     centralWidget->setObjectName("centralWidget");
