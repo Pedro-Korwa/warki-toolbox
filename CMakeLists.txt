@@ -16,8 +16,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport Concurrent)
 # pkg_check_modules(TESSERACT REQUIRED tesseract)
 # pkg_check_modules(LEPTONICA REQUIRED lept)
 
-# 2. Daftarkan Seluruh File Source dan Header C++
-add_executable(WarkiToolbox
+# 2. Daftarkan Seluruh File Source dan Header C++ (Ditambahkan flag WIN32)
+add_executable(WarkiToolbox WIN32
     src/main.cpp
     src/MainWindow.cpp
     src/MainWindow.h
@@ -40,7 +40,6 @@ add_executable(WarkiToolbox
     src/DocConverterPage.cpp
     src/DocConverterPage.h
 )
-
 
 # 3. Include Directories
 target_include_directories(WarkiToolbox PRIVATE 

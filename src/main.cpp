@@ -1,24 +1,38 @@
 #include <QApplication>
 #include <QStyleFactory>
 #include <QTimer>
+#include <QMessageBox>
 #include "MainWindow.h"
 #include "SplashScreen.h"
 
 int main(int argc, char *argv[]) {
+    // Matikan High-DPI scaling otomatis jika memicu glitch/crash pada driver grafik Windows
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, false);
+
     QApplication app(argc, argv);
 
     // Paksa Qt menggunakan style Fusion agar stylesheet kustom bekerja 100% di semua OS
     app.setStyle(QStyleFactory::create("Fusion"));
 
-    SplashScreen splash;
-    splash.show();
+    try {
+        // Alokasi memori heap via pointer untuk SplashScreen dan MainWindow agar aman di memori Windows
+        SplashScreen *splash = new SplashScreen();
+        splash->show();
 
-    MainWindow window;
+        MainWindow *window = new MainWindow();
 
-    QTimer::singleShot(2500, [&]() {
-        splash.close();
-        window.show();
-    });
+        QTimer::singleShot(2500, [splash, window]() {
+            splash->finish(window);
+            splash->deleteLater();
+            window->show();
+        });
 
-    return app.exec();
+        return app.exec();
+    } catch (const std::exception &e) {
+        QMessageBox::critical(nullptr, "Fatal Error", e.what());
+        return -1;
+    } catch (...) {
+        QMessageBox::critical(nullptr, "Fatal Error", "An unknown fatal error occurred on startup.");
+        return -1;
+    }
 }
