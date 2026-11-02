@@ -20,11 +20,6 @@ jobs:
         version: '6.6.2'
         arch: 'win64_mingw64'
 
-    - name: Setup MinGW
-      uses: egor-tisin/setup-mingw@v2
-      with:
-        platform: x64
-
     - name: Configure CMake
       run: |
         mkdir build-ci
@@ -45,7 +40,7 @@ jobs:
       with:
         name: WarkiToolbox-Windows-x64
         path: |
-          build-ci/WarkiToolbox.exe
-          build-ci/Release/WarkiToolbox.exe
+          build-ci/*.exe
+          build-ci/Release/*.exe
           build-ci/*.dll
           build-ci/Release/*.dll
